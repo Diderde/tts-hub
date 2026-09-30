@@ -1,0 +1,152 @@
+# TTS-Hub 厂商配置模板：复制为 providers.yaml 后按需修改。
+# providers.yaml 不进版本库（见 .gitignore）；密钥不放这里，放 .env。
+
+# 默认厂商：未显式指定 --vendor 时使用
+default_vendor: minimax
+
+# 回退链：speak --fallback 时按序尝试；鉴权/审核类错误不触发回退
+fallback:
+  - minimax
+  - stepfun
+  - zhipu
+
+# 出站代理；缺省为 null（直连，不读环境变量代理，行为可预期）
+proxy: null
+
+# 是否允许克隆样本使用环回/内网地址。默认 false —— 用户提交的音频 URL 必须先过
+# 出站安全校验；只有在明确知道自己在做什么时才打开。
+allow_private_urls: false
+
+# 单次请求超时（秒）
+timeout: 60
+
+# 运行期数据目录（注册表数据库与样本归档），相对项目根
+data_dir: data
+out_dir: out
+
+# HTTP 服务监听地址（tts-hub serve）。默认只听本机；改成 0.0.0.0 或局域网 IP
+# 即对外暴露，而本服务没有鉴权（设计上不做用户系统），改之前请想清楚。
+host: 127.0.0.1
+port: 8000
+
+providers:
+  minimax:
+    enabled: true
+    api_key_env: MINIMAX_API_KEY
+    base_url: https://api.minimax.cn
+    default_model: speech-2.8-turbo
+    clone_model: speech-2.8-hd
+    # 现行官方文档没有 GroupId 参数，缺省不发；个别账号若确需可填
+    # group_id: ""
+
+  stepfun:
+    enabled: true
+    api_key_env: STEPFUN_API_KEY
+    base_url: https://api.stepfun.com/v1
+    default_model: stepaudio-2.5-tts
+    # 复刻可选模型只有 stepaudio-2.5-tts / step-tts-2 / step-tts-mini
+    clone_model: step-tts-2
+
+  zhipu:
+    enabled: true
+    api_key_env: ZHIPU_API_KEY
+    base_url: https://open.bigmodel.cn/api/paas/v4
+    default_model: glm-tts
+    clone_model: glm-tts-clone
+
+  # P3 批次
+  aliyun:
+    enabled: true
+    api_key_env: DASHSCOPE_API_KEY
+    base_url: https://dashscope.aliyuncs.com
+    # 合成模型同时决定音色的 target_model（音色不可跨模型使用）
+    default_model: cosyvoice-v3-flash
+    clone_model: cosyvoice-v3-flash
+    # 想让本地文件走 base64（Data URL）就把 clone_model 换成：
+    #   qwen3-tts-vc-2026-01-22
+    # CosyVoice 系只收公网可访问、免鉴权的音频 URL。
+
+  baidu:
+    enabled: true
+    api_key_env: BAIDU_API_KEY
+    # 百度要两把密钥：API Key 换 access_token，Secret Key 是换取凭据
+    api_secret_env: BAIDU_SECRET_KEY
+    # 官方未公开模型 ID，此值仅作标识
+    default_model: baidu-voice-clone
+    clone_model: baidu-voice-clone
+    # 默认走 access_token（官方示例路径）；也可填 api_key 直接用 Authorization 头
+    auth_mode: token
+
+  unisound:
+    enabled: true
+    api_key_env: UNISOUND_API_KEY
+    base_url: https://maas-api.unisound.com
+    # 注意：Token Plan 的 Key 与按量付费 Key 不可互换，脚本调用请用后者
+    default_model: u2-tts
+    clone_model: u2-tts-clone
+
+  # P4 批次
+  tencent:
+    enabled: true
+    # 腾讯云用 SecretId + SecretKey 做 TC3-HMAC-SHA256 签名
+    api_key_env: TENCENT_SECRET_ID
+    api_secret_env: TENCENT_SECRET_KEY
+    default_model: tts-texttovoice
+    clone_model: vrs-onesentence
+    # 一句话复刻必须照官方文本录：先跑 `tts-hub clone` 拿到该念的文本，
+    # 录好后带 text_id 再跑一次。这个流程没法规避，是厂商设计的。
+    # 签名 region（VRS 目前只在 ap-guangzhou）
+    region: ap-guangzhou
+    # 流式合成走 FlowTTS 的 SSE，需要 TRTC 的 SdkAppId；不配就只能用非流式 TextToVoice
+    sdk_app_id: 0
+    flowtts_region: ap-guangzhou
+
+  volcengine:
+    enabled: true
+    api_key_env: VOLCENGINE_API_KEY
+    base_url: https://openspeech.bytedance.com
+    default_model: seed-tts-2.0
+    clone_model: seed-icl-2.0
+    # ⚠️ 改成 postpaid 前务必读 docs/方案设计.md §11.5：
+    # 后付费音色首次合成即扣 138 元槽位费且不可逆，本 adapter 默认会拦住，
+    # 需要 ack_first_charge: true（或每次调用传 ack_charge=True）才放行。
+    billing: prepaid
+    ack_first_charge: false
+    # 预付费音色 ID 形如 S_xxxx，从控制台获取；后付费用自定义 custom_speaker_id
+
+  huawei:
+    enabled: true
+    # 华为云声音复刻走 IAM Token：这两个不是 API Key，而是 IAM 用户名与登录密码
+    api_key_env: HUAWEI_USERNAME
+    api_secret_env: HUAWEI_PASSWORD
+    default_model: sis-vcs
+    clone_model: sis-vcs
+    # 账号名（IAM 换 token 时必填）
+    domain_name: ""
+    # project_id 可留空——留空时会从换 token 的响应里自动取
+    project_id: ""
+    # 想免密时也可以直接塞一个现成的项目级 Token（24 小时有效）
+    # x_auth_token: ""
+
+  iflytek:
+    enabled: true
+    # 讯飞要三样：appid（下面）+ APIKey + APISecret
+    api_key_env: IFLYTEK_API_KEY
+    api_secret_env: IFLYTEK_API_SECRET
+    appid: ""
+    default_model: x5_clone
+    clone_model: x5_clone
+    # 合成只有 WebSocket，本 adapter 不实现；synthesize 会报错并给出 signed_ws_url()
+
+# 价目覆盖：只写要改的项，其余沿用内置表（见 tts_hub/pricing.py）
+# 单位：合成 = 元/万字符；复刻 = 元/音色（智谱为元/次）
+pricing:
+  minimax:
+    synth:
+      speech-2.8-turbo: 2.0
+  stepfun:
+    synth:
+      step-tts-mini: 0.9
+  zhipu:
+    synth:
+      glm-tts: 2.0

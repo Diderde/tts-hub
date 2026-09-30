@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<!--
+  TTS-Hub 完整管理台（《方案设计.md》§8.3）。
+
+  刻意做成"零构建、零 CDN"的单页：三个文件（html/css/js）直接由 FastAPI 送出，
+  离线可用，不引任何外部域名。本地单机工具没必要为它上一套前端工程链。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TTS-Hub 管理台</title>
+<link rel="stylesheet" href="/assets/console.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>TTS-Hub 管理台</h1>
+  <div id="health" class="health">连接中…</div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab" data-panel="tuner">调音台</button>
+  <button class="tab" data-panel="voices">音色库</button>
+  <button class="tab" data-panel="vendors">厂商</button>
+  <button class="tab" data-panel="cost">成本看板</button>
+  <button class="tab" data-panel="logs">调用日志</button>
+</nav>
+
+<div id="banner" class="banner" hidden></div>
+
+<main>
+  <!-- ── 调音台：文本 → 多厂商并排试听 → 一键设默认 ─────────────── -->
+  <section class="panel" id="panel-tuner">
+    <h2>调音台</h2>
+    <p class="hint">
+      同一段文本并发发给多家厂商，并排试听。选中的厂商若复刻过该音色，可以直接把它设为默认，
+      之后 <code>speak</code> 不带 vendor 就走它。
+    </p>
+    <div class="row">
+      <label>文本
+        <textarea id="tuner-text" rows="3" placeholder="要合成的文本">你好，这是一段试听文本。</textarea>
+      </label>
+    </div>
+    <div class="row">
+      <label>音色
+        <input id="tuner-voice" list="voice-options" placeholder="逻辑音色名/ID，或厂商内 voice_id">
+        <datalist id="voice-options"></datalist>
+      </label>
+      <label>模型（可空，留空用各厂商默认）
+        <input id="tuner-model" placeholder="留空即可">
+      </label>
+      <button id="tuner-run" class="primary">并排试听</button>
+    </div>
+    <div class="row">
+      <span class="label">参与对比的厂商</span>
+      <div id="tuner-vendors" class="chips"></div>
+    </div>
+    <div id="tuner-current" class="hint"></div>
+    <div id="tuner-results" class="cards"></div>
+  </section>
+
+  <!-- ── 音色库：标签 / 样本 / 绑定管理 ─────────────────────────── -->
+  <section class="panel" id="panel-voices" hidden>
+    <h2>音色库</h2>
+    <div class="row">
+      <label>名字 <input id="clone-name" placeholder="旁白"></label>
+      <label>标签 <input id="clone-tags" placeholder="逗号分隔"></label>
+      <label>厂商 <select id="clone-vendor"></select></label>
+      <label>模型 <input id="clone-model" placeholder="留空用该厂商复刻默认"></label>
+    </div>
+    <div class="row">
+      <label>样本源文本 <input id="clone-transcript" placeholder="样本里念的内容（可选，影响效果）"></label>
+      <label>试听文本 <input id="clone-preview" placeholder="智谱必填；腾讯/讯飞一句话复刻要用官方文本"></label>
+      <label>样本文件 <input id="clone-file" type="file" accept="audio/*"></label>
+      <button id="clone-run" class="primary">上传并复刻</button>
+    </div>
+    <div id="clone-status" class="hint"></div>
+    <table class="grid" id="voices-table">
+      <thead><tr><th>名字</th><th>ID</th><th>标签</th><th>绑定</th><th>操作</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="voice-detail"></div>
+  </section>
+
+  <!-- ── 厂商：密钥状态 / 限额 / 启停 ───────────────────────────── -->
+  <section class="panel" id="panel-vendors" hidden>
+    <h2>厂商</h2>
+    <div id="expiring" class="banner warn" hidden></div>
+    <table class="grid" id="vendors-table">
+      <thead><tr><th>厂商</th><th>启用</th><th>密钥</th><th>合成默认</th><th>复刻默认</th><th>单价</th><th>模型</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="vendor-models"></div>
+  </section>
+
+  <!-- ── 成本看板：日 / 周 / 厂商维度 ───────────────────────────── -->
+  <section class="panel" id="panel-cost" hidden>
+    <h2>成本看板</h2>
+    <div class="row">
+      <label>区间
+        <select id="cost-range">
+          <option value="7d">近 7 天</option>
+          <option value="30d">近 30 天</option>
+          <option value="90d">近 90 天</option>
+        </select>
+      </label>
+      <label>维度
+        <select id="cost-by">
+          <option value="vendor">按厂商</option>
+          <option value="model">按模型</option>
+          <option value="day">按天</option>
+        </select>
+      </label>
+      <button id="cost-run">刷新</button>
+    </div>
+    <div id="cost-total" class="hint"></div>
+    <table class="grid" id="cost-table">
+      <thead><tr><th>维度</th><th>调用</th><th>成功</th><th>字符</th><th>平均耗时</th><th>费用</th><th>占比</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="hint">费用是按内置价目表**估算**的，不是厂商账单；实际以各家控制台为准。</p>
+  </section>
+
+  <!-- ── 调用日志：耗时 / 失败原因检索 ──────────────────────────── -->
+  <section class="panel" id="panel-logs" hidden>
+    <h2>调用日志</h2>
+    <div class="row">
+      <label>厂商 <select id="log-vendor"><option value="">全部</option></select></label>
+      <label>结果
+        <select id="log-status">
+          <option value="">全部</option>
+          <option value="ok">成功</option>
+          <option value="error">失败</option>
+        </select>
+      </label>
+      <label>关键字 <input id="log-q" placeholder="模型 / 音色 / 错误码"></label>
+      <label>区间
+        <select id="log-range">
+          <option value="7d">近 7 天</option>
+          <option value="30d" selected>近 30 天</option>
+          <option value="3650d">全部</option>
+        </select>
+      </label>
+      <button id="log-run">查询</button>
+    </div>
+    <table class="grid" id="logs-table">
+      <thead><tr><th>时间</th><th>厂商</th><th>模型</th><th>音色</th><th>字符</th><th>耗时</th><th>费用</th><th>结果</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</main>
+
+<script src="/assets/console.js"></script>
+</body>
+</html>

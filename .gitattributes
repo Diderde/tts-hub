@@ -1,0 +1,35 @@
+# 行尾策略：工作区 CRLF，仓库内归一（项目默认策略）
+* text=auto eol=crlf
+
+# 二进制音频/图像：不得按文本处理
+*.mp3 -text
+*.wav -text
+*.m4a -text
+*.aac -text
+*.ogg -text
+*.flac -text
+*.pcm -text
+*.png -text
+*.jpg -text
+*.jpeg -text
+*.gif -text
+*.ico -text
+*.woff -text
+*.woff2 -text
+
+# 数据库与归档：二进制
+*.db -text
+*.sqlite3 -text
+*.zip -text
+*.gz -text
+
+# 由工具链生成、且工具链只产 LF 的锁文件
+uv.lock text eol=lf
+poetry.lock text eol=lf
+
+# 需要在 POSIX shell 下执行、必须保持 LF 的脚本
+*.sh text eol=lf
+
+# 本文件自身按文本处理即可
+.gitattributes text
+.gitignore text

@@ -1,0 +1,145 @@
+/* TTS-Hub 管理台样式（《方案设计.md》§8.3）。
+   手写 CSS，不引任何框架/CDN：本地单机工具，深色底 + 高信息密度即可。 */
+
+:root {
+  --bg: #14161a;
+  --panel: #1c1f26;
+  --line: #2c313b;
+  --fg: #e6e9ef;
+  --muted: #9aa3b2;
+  --accent: #4c8dff;
+  --ok: #3fb950;
+  --bad: #f85149;
+  --warn: #d29922;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.6 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.topbar h1 { font-size: 16px; margin: 0; }
+.health { color: var(--muted); font-size: 12px; }
+
+.tabs { display: flex; gap: 4px; padding: 10px 20px 0; flex-wrap: wrap; }
+
+.tab {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  color: var(--muted);
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.tab.active { background: var(--panel); color: var(--fg); }
+
+main { padding: 0 20px 40px; }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 0 6px 6px 6px;
+  padding: 16px 20px 24px;
+}
+
+.panel h2 { margin: 0 0 4px; font-size: 15px; }
+.hint { color: var(--muted); font-size: 12px; margin: 6px 0; }
+.label { color: var(--muted); font-size: 12px; align-self: center; }
+
+.row { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; align-items: flex-end; }
+.row > label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 12px; }
+
+input, textarea, select {
+  background: #101216;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--fg);
+  padding: 6px 8px;
+  font: inherit;
+  min-width: 160px;
+}
+
+textarea { width: min(720px, 100%); resize: vertical; }
+
+button {
+  background: #232833;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--fg);
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button:disabled { opacity: .5; cursor: default; }
+
+.banner {
+  margin: 12px 20px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  background: #1a1e26;
+  font-size: 13px;
+}
+
+.banner.warn { border-left-color: var(--warn); }
+.banner.bad { border-left-color: var(--bad); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.chip.on { border-color: var(--accent); color: var(--fg); background: #1d2836; }
+.chip.off { opacity: .45; }
+
+.cards { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+.card {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  min-width: 260px;
+  background: #171a21;
+}
+.card.default { border-color: var(--ok); }
+.card h3 { margin: 0 0 6px; font-size: 13px; }
+.card .meta { color: var(--muted); font-size: 12px; }
+.card audio { width: 100%; margin-top: 6px; }
+.card .err { color: var(--bad); font-size: 12px; word-break: break-all; }
+
+table.grid { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+table.grid th, table.grid td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+table.grid th { color: var(--muted); font-weight: 500; font-size: 12px; }
+table.grid tr:hover td { background: #1a1e26; }
+
+.bar { height: 8px; border-radius: 4px; background: var(--accent); min-width: 2px; }
+
+.tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 11px; border: 1px solid var(--line); }
+.tag.ok { color: var(--ok); border-color: var(--ok); }
+.tag.bad { color: var(--bad); border-color: var(--bad); }
+.tag.muted { color: var(--muted); }
+
+.mono { font-family: Consolas, "Cascadia Mono", monospace; font-size: 12px; }

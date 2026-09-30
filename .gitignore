@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# 本地配置与密钥：绝不入库
+.env
+.env.local
+providers.yaml
+
+# 运行期数据：注册表数据库与样本归档
+data/
+out/
+scratch/
+
+# 本机构建/引导用的临时目录
+.tmp-build/
+
+# 测试与工具产物
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# 本机安全扫描器目录（勿动勿提交）
+.mimosa/
+
+# 过程性文档只留本地：不进版本库、不进公开面
+docs/
